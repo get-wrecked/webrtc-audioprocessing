@@ -62,7 +62,8 @@ def main():
         source_files, header_files = collect_files(out_dir, target)
 
         save_to_cmake_file(source_files, "sources_new.cmake", "SOURCE_FILES")
-        save_to_cmake_file(header_files, "headers_new.cmake", "HEADER_FILES")
+        # Listing header by this method is not foolproof. It misses some headers. Using alternative method in CMakeLists.txt
+        # save_to_cmake_file(header_files, "headers_new.cmake", "HEADER_FILES")
 
     except Exception as e:
         print(f"Error: {str(e)}")

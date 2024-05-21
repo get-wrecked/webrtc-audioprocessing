@@ -139,3 +139,26 @@ endif()
 add_library(audio_processing STATIC ${SOURCE_FILES})
 
 add_dependencies(audio_processing GenerateFieldTrialsHeader)
+
+# Define installation rules for the library
+install(TARGETS audio_processing
+        ARCHIVE DESTINATION lib
+        LIBRARY DESTINATION lib
+        RUNTIME DESTINATION bin)  # for windows dlls
+
+# Define a function to handle the installation of headers
+function(install_headers src_path)
+  # Remove the last directory from the path to form the destination subdirectory
+  string(REGEX REPLACE "/[^/]+$" "" dest_subdir ${src_path})
+
+  install(DIRECTORY ${src_path}
+          DESTINATION ${dest_subdir}
+          FILES_MATCHING PATTERN "*.h")
+endfunction()
+
+# Call the function for each directory
+install_headers(src/third_party/abseil-cpp)
+install_headers(src/api)
+install_headers(src/modules/audio_processing)
+install_headers(src/rtc_base)
+install_headers(src/common_audio)

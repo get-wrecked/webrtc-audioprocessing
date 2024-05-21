@@ -1,4 +1,7 @@
 .gc*
 src
 build
+install
 .cipd
+.DS_Store
+sources_new.cmake

@@ -30,7 +30,10 @@ gn gen out/Default
 ```
 cd ..
 mkdir build
+mkdir install
 cd build
-cmake ..
-cmake --build . --config Release
+cmake -DCMAKE_INSTALL_PREFIX=../install ..
+cmake --build . --config Release --target install
 ```
+- The `install` folder will contain the audio processing library(in `lib` subfolder) and the header files needed to use them(in `src` subfolder)
+
