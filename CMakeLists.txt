@@ -3,8 +3,11 @@ cmake_minimum_required(VERSION 3.10)
 # Set your project name
 project(AudioProcessingLibrary)
 
+# Include the external .cmake files that lists the common source and header files.
+include(sources.cmake)
+
 # Specify the C++ standard
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 if(UNIX)
@@ -29,14 +32,13 @@ endif()
 # Windows
 if(WIN32)
   add_definitions(-DWEBRTC_WIN)
+  add_definitions(-DNOMINMAX)
+  add_definitions(-DWIN32_LEAN_AND_MEAN)
 endif()
+
+add_definitions(-DRTC_DISABLE_CHECK_MSG)
 
 message(STATUS "Host System Processor: ${CMAKE_HOST_SYSTEM_PROCESSOR}")
-
-if(CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "aarch64|ARM64|arm64")
-    add_definitions(-DWEBRTC_ARCH_ARM64)
-    add_definitions(-DWEBRTC_HAS_NEON)
-endif()
 
 add_definitions(-DWEBRTC_APM_DEBUG_DUMP=1)
 
@@ -76,6 +78,14 @@ endif()
 SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=armv8-a+crc+crypto")
 endif()
 
+find_package(Python3 REQUIRED COMPONENTS Interpreter)
+
+if(Python3_FOUND)
+    set(PYTHON_EXECUTABLE ${Python3_EXECUTABLE})
+else()
+    message(FATAL_ERROR "Python3 not found")
+endif()
+
 # Set variables for the script and output directory
 set(FT_SCRIPT_PATH "${CMAKE_SOURCE_DIR}/src/experiments/field_trials.py")  # Adjust the path to where the script is located
 set(FT_OUTPUT_DIR "${CMAKE_BINARY_DIR}/experiments")
@@ -98,7 +108,6 @@ add_custom_target(
     DEPENDS ${FT_OUTPUT_FILE}
 )
 
-
 # Include directories
 include_directories(
     ${CMAKE_SOURCE_DIR}/src
@@ -110,503 +119,21 @@ include_directories(
     ${CMAKE_BINARY_DIR}
 )
 
-# Define source files
-set(SOURCE_FILES
-    src/api/audio/audio_frame.cc
-    src/api/audio/channel_layout.cc
-    src/api/audio/echo_canceller3_config.cc
-    src/api/rtp_headers.cc
-    src/api/rtp_packet_info.cc
-    src/api/task_queue/task_queue_base.cc
-    src/api/units/data_rate.cc
-    src/api/units/data_size.cc
-    src/api/units/frequency.cc
-    src/api/units/time_delta.cc
-    src/api/units/timestamp.cc
-    src/api/video/color_space.cc
-    src/api/video/hdr_metadata.cc
-    src/api/video/video_content_type.cc
-    src/api/video/video_timing.cc
-    src/audio/utility/audio_frame_operations.cc
-    src/audio/utility/channel_mixer.cc
-    src/audio/utility/channel_mixing_matrix.cc
-    src/common_audio/audio_converter.cc
-    src/common_audio/audio_util.cc
-    src/common_audio/channel_buffer.cc
-    src/common_audio/fir_filter_c.cc
-    src/common_audio/fir_filter_factory.cc
-    src/common_audio/fir_filter_neon.cc
-    src/common_audio/real_fourier.cc
-    src/common_audio/real_fourier_ooura.cc
-    src/common_audio/resampler/push_resampler.cc
-    src/common_audio/resampler/push_sinc_resampler.cc
-    src/common_audio/resampler/resampler.cc
-    src/common_audio/resampler/sinc_resampler.cc
-    src/common_audio/resampler/sinc_resampler_neon.cc
-    src/common_audio/ring_buffer.c
-    src/common_audio/signal_processing/auto_corr_to_refl_coef.c
-    src/common_audio/signal_processing/auto_correlation.c
-    src/common_audio/signal_processing/complex_bit_reverse.c
-    src/common_audio/signal_processing/complex_fft.c
-    src/common_audio/signal_processing/copy_set_operations.c
-    src/common_audio/signal_processing/cross_correlation.c
-    src/common_audio/signal_processing/cross_correlation_neon.c
-    src/common_audio/signal_processing/division_operations.c
-    src/common_audio/signal_processing/dot_product_with_scale.cc
-    src/common_audio/signal_processing/downsample_fast.c
-    src/common_audio/signal_processing/downsample_fast_neon.c
-    src/common_audio/signal_processing/energy.c
-    src/common_audio/signal_processing/filter_ar.c
-    src/common_audio/signal_processing/filter_ar_fast_q12.c
-    src/common_audio/signal_processing/filter_ma_fast_q12.c
-    src/common_audio/signal_processing/get_hanning_window.c
-    src/common_audio/signal_processing/get_scaling_square.c
-    src/common_audio/signal_processing/ilbc_specific_functions.c
-    src/common_audio/signal_processing/levinson_durbin.c
-    src/common_audio/signal_processing/lpc_to_refl_coef.c
-    src/common_audio/signal_processing/min_max_operations.c
-    src/common_audio/signal_processing/min_max_operations_neon.c
-    src/common_audio/signal_processing/randomization_functions.c
-    src/common_audio/signal_processing/real_fft.c
-    src/common_audio/signal_processing/refl_coef_to_lpc.c
-    src/common_audio/signal_processing/resample.c
-    src/common_audio/signal_processing/resample_48khz.c
-    src/common_audio/signal_processing/resample_by_2.c
-    src/common_audio/signal_processing/resample_by_2_internal.c
-    src/common_audio/signal_processing/resample_fractional.c
-    src/common_audio/signal_processing/spl_init.c
-    src/common_audio/signal_processing/spl_inl.c
-    src/common_audio/signal_processing/spl_sqrt.c
-    src/common_audio/signal_processing/splitting_filter.c
-    src/common_audio/signal_processing/sqrt_of_one_minus_x_squared.c
-    src/common_audio/signal_processing/vector_scaling_operations.c
-    src/common_audio/smoothing_filter.cc
-    src/common_audio/third_party/ooura/fft_size_128/ooura_fft.cc
-    src/common_audio/third_party/ooura/fft_size_128/ooura_fft_neon.cc
-    src/common_audio/third_party/ooura/fft_size_256/fft4g.cc
-    src/common_audio/third_party/spl_sqrt_floor/spl_sqrt_floor.c
-    src/common_audio/vad/vad.cc
-    src/common_audio/vad/vad_core.c
-    src/common_audio/vad/vad_filterbank.c
-    src/common_audio/vad/vad_gmm.c
-    src/common_audio/vad/vad_sp.c
-    src/common_audio/vad/webrtc_vad.c
-    src/common_audio/wav_file.cc
-    src/common_audio/wav_header.cc
-    src/common_audio/window_generator.cc
-    src/modules/audio_coding/codecs/isac/main/source/filter_functions.c
-    src/modules/audio_coding/codecs/isac/main/source/isac_vad.c
-    src/modules/audio_coding/codecs/isac/main/source/pitch_estimator.c
-    src/modules/audio_coding/codecs/isac/main/source/pitch_filter.c
-    src/modules/audio_processing/aec3/adaptive_fir_filter.cc
-    src/modules/audio_processing/aec3/adaptive_fir_filter_erl.cc
-    src/modules/audio_processing/aec3/aec3_common.cc
-    src/modules/audio_processing/aec3/aec3_fft.cc
-    src/modules/audio_processing/aec3/aec_state.cc
-    src/modules/audio_processing/aec3/alignment_mixer.cc
-    src/modules/audio_processing/aec3/api_call_jitter_metrics.cc
-    src/modules/audio_processing/aec3/block_buffer.cc
-    src/modules/audio_processing/aec3/block_delay_buffer.cc
-    src/modules/audio_processing/aec3/block_framer.cc
-    src/modules/audio_processing/aec3/block_processor.cc
-    src/modules/audio_processing/aec3/block_processor_metrics.cc
-    src/modules/audio_processing/aec3/clockdrift_detector.cc
-    src/modules/audio_processing/aec3/coarse_filter_update_gain.cc
-    src/modules/audio_processing/aec3/comfort_noise_generator.cc
-    src/modules/audio_processing/aec3/config_selector.cc
-    src/modules/audio_processing/aec3/decimator.cc
-    src/modules/audio_processing/aec3/dominant_nearend_detector.cc
-    src/modules/audio_processing/aec3/downsampled_render_buffer.cc
-    src/modules/audio_processing/aec3/echo_audibility.cc
-    src/modules/audio_processing/aec3/echo_canceller3.cc
-    src/modules/audio_processing/aec3/echo_path_delay_estimator.cc
-    src/modules/audio_processing/aec3/echo_path_variability.cc
-    src/modules/audio_processing/aec3/echo_remover.cc
-    src/modules/audio_processing/aec3/echo_remover_metrics.cc
-    src/modules/audio_processing/aec3/erl_estimator.cc
-    src/modules/audio_processing/aec3/erle_estimator.cc
-    src/modules/audio_processing/aec3/fft_buffer.cc
-    src/modules/audio_processing/aec3/filter_analyzer.cc
-    src/modules/audio_processing/aec3/frame_blocker.cc
-    src/modules/audio_processing/aec3/fullband_erle_estimator.cc
-    src/modules/audio_processing/aec3/matched_filter.cc
-    src/modules/audio_processing/aec3/matched_filter_lag_aggregator.cc
-    src/modules/audio_processing/aec3/moving_average.cc
-    src/modules/audio_processing/aec3/multi_channel_content_detector.cc
-    src/modules/audio_processing/aec3/refined_filter_update_gain.cc
-    src/modules/audio_processing/aec3/render_buffer.cc
-    src/modules/audio_processing/aec3/render_delay_buffer.cc
-    src/modules/audio_processing/aec3/render_delay_controller.cc
-    src/modules/audio_processing/aec3/render_delay_controller_metrics.cc
-    src/modules/audio_processing/aec3/render_signal_analyzer.cc
-    src/modules/audio_processing/aec3/residual_echo_estimator.cc
-    src/modules/audio_processing/aec3/reverb_decay_estimator.cc
-    src/modules/audio_processing/aec3/reverb_frequency_response.cc
-    src/modules/audio_processing/aec3/reverb_model.cc
-    src/modules/audio_processing/aec3/reverb_model_estimator.cc
-    src/modules/audio_processing/aec3/signal_dependent_erle_estimator.cc
-    src/modules/audio_processing/aec3/spectrum_buffer.cc
-    src/modules/audio_processing/aec3/stationarity_estimator.cc
-    src/modules/audio_processing/aec3/subband_erle_estimator.cc
-    src/modules/audio_processing/aec3/subband_nearend_detector.cc
-    src/modules/audio_processing/aec3/subtractor.cc
-    src/modules/audio_processing/aec3/subtractor_output.cc
-    src/modules/audio_processing/aec3/subtractor_output_analyzer.cc
-    src/modules/audio_processing/aec3/suppression_filter.cc
-    src/modules/audio_processing/aec3/suppression_gain.cc
-    src/modules/audio_processing/aec3/transparent_mode.cc
-    src/modules/audio_processing/aec_dump/null_aec_dump_factory.cc
-    src/modules/audio_processing/aecm/aecm_core.cc
-    src/modules/audio_processing/aecm/aecm_core_c.cc
-    src/modules/audio_processing/aecm/aecm_core_neon.cc
-    src/modules/audio_processing/aecm/echo_control_mobile.cc
-    src/modules/audio_processing/agc/agc.cc
-    src/modules/audio_processing/agc/agc_manager_direct.cc
-    src/modules/audio_processing/agc/legacy/analog_agc.cc
-    src/modules/audio_processing/agc/legacy/digital_agc.cc
-    src/modules/audio_processing/agc/loudness_histogram.cc
-    src/modules/audio_processing/agc/utility.cc
-    src/modules/audio_processing/agc2/adaptive_digital_gain_controller.cc
-    src/modules/audio_processing/agc2/biquad_filter.cc
-    src/modules/audio_processing/agc2/clipping_predictor.cc
-    src/modules/audio_processing/agc2/clipping_predictor_level_buffer.cc
-    src/modules/audio_processing/agc2/cpu_features.cc
-    src/modules/audio_processing/agc2/fixed_digital_level_estimator.cc
-    src/modules/audio_processing/agc2/gain_applier.cc
-    src/modules/audio_processing/agc2/input_volume_controller.cc
-    src/modules/audio_processing/agc2/input_volume_stats_reporter.cc
-    src/modules/audio_processing/agc2/interpolated_gain_curve.cc
-    src/modules/audio_processing/agc2/limiter.cc
-    src/modules/audio_processing/agc2/noise_level_estimator.cc
-    src/modules/audio_processing/agc2/rnn_vad/auto_correlation.cc
-    src/modules/audio_processing/agc2/rnn_vad/features_extraction.cc
-    src/modules/audio_processing/agc2/rnn_vad/lp_residual.cc
-    src/modules/audio_processing/agc2/rnn_vad/pitch_search.cc
-    src/modules/audio_processing/agc2/rnn_vad/pitch_search_internal.cc
-    src/modules/audio_processing/agc2/rnn_vad/rnn.cc
-    src/modules/audio_processing/agc2/rnn_vad/rnn_fc.cc
-    src/modules/audio_processing/agc2/rnn_vad/rnn_gru.cc
-    src/modules/audio_processing/agc2/rnn_vad/spectral_features.cc
-    src/modules/audio_processing/agc2/rnn_vad/spectral_features_internal.cc
-    src/modules/audio_processing/agc2/saturation_protector.cc
-    src/modules/audio_processing/agc2/saturation_protector_buffer.cc
-    src/modules/audio_processing/agc2/speech_level_estimator.cc
-    src/modules/audio_processing/agc2/speech_probability_buffer.cc
-    src/modules/audio_processing/agc2/vad_wrapper.cc
-    src/modules/audio_processing/audio_buffer.cc
-    src/modules/audio_processing/audio_processing_builder_impl.cc
-    src/modules/audio_processing/audio_processing_impl.cc
-    src/modules/audio_processing/capture_levels_adjuster/audio_samples_scaler.cc
-    src/modules/audio_processing/capture_levels_adjuster/capture_levels_adjuster.cc
-    src/modules/audio_processing/echo_control_mobile_impl.cc
-    src/modules/audio_processing/gain_control_impl.cc
-    src/modules/audio_processing/gain_controller2.cc
-    src/modules/audio_processing/high_pass_filter.cc
-    src/modules/audio_processing/include/aec_dump.cc
-    src/modules/audio_processing/include/audio_frame_proxies.cc
-    src/modules/audio_processing/include/audio_processing.cc
-    src/modules/audio_processing/include/audio_processing_statistics.cc
-    src/modules/audio_processing/logging/apm_data_dumper.cc
-    src/modules/audio_processing/ns/fast_math.cc
-    src/modules/audio_processing/ns/histograms.cc
-    src/modules/audio_processing/ns/noise_estimator.cc
-    src/modules/audio_processing/ns/noise_suppressor.cc
-    src/modules/audio_processing/ns/ns_fft.cc
-    src/modules/audio_processing/ns/prior_signal_model.cc
-    src/modules/audio_processing/ns/prior_signal_model_estimator.cc
-    src/modules/audio_processing/ns/quantile_noise_estimator.cc
-    src/modules/audio_processing/ns/signal_model.cc
-    src/modules/audio_processing/ns/signal_model_estimator.cc
-    src/modules/audio_processing/ns/speech_probability_estimator.cc
-    src/modules/audio_processing/ns/suppression_params.cc
-    src/modules/audio_processing/ns/wiener_filter.cc
-    src/modules/audio_processing/optionally_built_submodule_creators.cc
-    src/modules/audio_processing/rms_level.cc
-    src/modules/audio_processing/splitting_filter.cc
-    src/modules/audio_processing/three_band_filter_bank.cc
-    src/modules/audio_processing/transient/moving_moments.cc
-    src/modules/audio_processing/transient/transient_detector.cc
-    src/modules/audio_processing/transient/transient_suppressor_impl.cc
-    src/modules/audio_processing/transient/voice_probability_delay_unit.cc
-    src/modules/audio_processing/transient/wpd_node.cc
-    src/modules/audio_processing/transient/wpd_tree.cc
-    src/modules/audio_processing/utility/cascaded_biquad_filter.cc
-    src/modules/audio_processing/utility/delay_estimator.cc
-    src/modules/audio_processing/utility/delay_estimator_wrapper.cc
-    src/modules/audio_processing/utility/pffft_wrapper.cc
-    src/modules/audio_processing/vad/gmm.cc
-    src/modules/audio_processing/vad/pitch_based_vad.cc
-    src/modules/audio_processing/vad/pitch_internal.cc
-    src/modules/audio_processing/vad/pole_zero_filter.cc
-    src/modules/audio_processing/vad/standalone_vad.cc
-    src/modules/audio_processing/vad/vad_audio_proc.cc
-    src/modules/audio_processing/vad/vad_circular_buffer.cc
-    src/modules/audio_processing/vad/voice_activity_detector.cc
-    src/modules/third_party/fft/fft.c
-    src/rtc_base/checks.cc
-    src/rtc_base/containers/flat_tree.cc
-    src/rtc_base/deprecated/recursive_critical_section.cc
-    src/rtc_base/event.cc
-    src/rtc_base/event_tracer.cc
-    src/rtc_base/experiments/field_trial_list.cc
-    src/rtc_base/experiments/field_trial_parser.cc
-    src/rtc_base/experiments/field_trial_units.cc
-    src/rtc_base/experiments/struct_parameters_parser.cc
-    src/rtc_base/logging.cc
-    src/rtc_base/memory/aligned_malloc.cc
-    src/rtc_base/numerics/event_based_exponential_moving_average.cc
-    src/rtc_base/numerics/exp_filter.cc
-    src/rtc_base/numerics/moving_average.cc
-    src/rtc_base/platform_thread.cc
-    src/rtc_base/platform_thread_types.cc
-    src/rtc_base/race_checker.cc
-    src/rtc_base/string_encode.cc
-    src/rtc_base/string_to_number.cc
-    src/rtc_base/string_utils.cc
-    src/rtc_base/strings/string_builder.cc
-    src/rtc_base/strings/string_format.cc
-    src/rtc_base/synchronization/sequence_checker_internal.cc
-    src/rtc_base/synchronization/yield.cc
-    src/rtc_base/synchronization/yield_policy.cc
-    src/rtc_base/system/file_wrapper.cc
-    src/rtc_base/system_time.cc
-    src/rtc_base/time_utils.cc
-    src/system_wrappers/source/clock.cc
-    src/system_wrappers/source/cpu_features.cc
-    src/system_wrappers/source/cpu_info.cc
-    src/system_wrappers/source/denormal_disabler.cc
-    src/system_wrappers/source/field_trial.cc
-    src/system_wrappers/source/metrics.cc
-    src/system_wrappers/source/rtp_to_ntp_estimator.cc
-    src/system_wrappers/source/sleep.cc
-    src/third_party/abseil-cpp/absl/base/internal/cycleclock.cc
-    src/third_party/abseil-cpp/absl/base/internal/raw_logging.cc
-    src/third_party/abseil-cpp/absl/base/internal/spinlock.cc
-    src/third_party/abseil-cpp/absl/base/internal/spinlock_wait.cc
-    src/third_party/abseil-cpp/absl/base/internal/sysinfo.cc
-    src/third_party/abseil-cpp/absl/base/internal/thread_identity.cc
-    src/third_party/abseil-cpp/absl/base/internal/throw_delegate.cc
-    src/third_party/abseil-cpp/absl/base/internal/unscaledcycleclock.cc
-    src/third_party/abseil-cpp/absl/base/log_severity.cc
-    src/third_party/abseil-cpp/absl/numeric/int128.cc
-    src/third_party/abseil-cpp/absl/strings/ascii.cc
-    src/third_party/abseil-cpp/absl/strings/charconv.cc
-    src/third_party/abseil-cpp/absl/strings/escaping.cc
-    src/third_party/abseil-cpp/absl/strings/internal/charconv_bigint.cc
-    src/third_party/abseil-cpp/absl/strings/internal/charconv_parse.cc
-    src/third_party/abseil-cpp/absl/strings/internal/damerau_levenshtein_distance.cc
-    src/third_party/abseil-cpp/absl/strings/internal/escaping.cc
-    src/third_party/abseil-cpp/absl/strings/internal/memutil.cc
-    src/third_party/abseil-cpp/absl/strings/internal/ostringstream.cc
-    src/third_party/abseil-cpp/absl/strings/internal/stringify_sink.cc
-    src/third_party/abseil-cpp/absl/strings/internal/utf8.cc
-    src/third_party/abseil-cpp/absl/strings/match.cc
-    src/third_party/abseil-cpp/absl/strings/numbers.cc
-    src/third_party/abseil-cpp/absl/strings/str_cat.cc
-    src/third_party/abseil-cpp/absl/strings/str_replace.cc
-    src/third_party/abseil-cpp/absl/strings/str_split.cc
-    src/third_party/abseil-cpp/absl/strings/string_view.cc
-    src/third_party/abseil-cpp/absl/strings/substitute.cc
-    src/third_party/abseil-cpp/absl/types/bad_optional_access.cc
-    src/third_party/pffft/src/pffft.c
-    # src/third_party/protobuf-javascript/src/generator/js_generator.cc
-    # src/third_party/protobuf-javascript/src/generator/protoc-gen-js.cc
-    # src/third_party/protobuf-javascript/src/generator/well_known_types_embed.cc
-    src/third_party/protobuf/src/google/protobuf/any.cc
-    src/third_party/protobuf/src/google/protobuf/any.pb.cc
-    src/third_party/protobuf/src/google/protobuf/any_lite.cc
-    src/third_party/protobuf/src/google/protobuf/api.pb.cc
-    src/third_party/protobuf/src/google/protobuf/arena.cc
-    src/third_party/protobuf/src/google/protobuf/arenastring.cc
-    src/third_party/protobuf/src/google/protobuf/arenaz_sampler.cc
-    src/third_party/protobuf/src/google/protobuf/compiler/code_generator.cc
-    src/third_party/protobuf/src/google/protobuf/compiler/command_line_interface.cc
-    src/third_party/protobuf/src/google/protobuf/compiler/cpp/enum.cc
-    src/third_party/protobuf/src/google/protobuf/compiler/cpp/enum_field.cc
-    src/third_party/protobuf/src/google/protobuf/compiler/cpp/extension.cc
-    src/third_party/protobuf/src/google/protobuf/compiler/cpp/field.cc
-    src/third_party/protobuf/src/google/protobuf/compiler/cpp/file.cc
-    src/third_party/protobuf/src/google/protobuf/compiler/cpp/generator.cc
-    src/third_party/protobuf/src/google/protobuf/compiler/cpp/helpers.cc
-    src/third_party/protobuf/src/google/protobuf/compiler/cpp/map_field.cc
-    src/third_party/protobuf/src/google/protobuf/compiler/cpp/message.cc
-    src/third_party/protobuf/src/google/protobuf/compiler/cpp/message_field.cc
-    src/third_party/protobuf/src/google/protobuf/compiler/cpp/padding_optimizer.cc
-    src/third_party/protobuf/src/google/protobuf/compiler/cpp/parse_function_generator.cc
-    src/third_party/protobuf/src/google/protobuf/compiler/cpp/primitive_field.cc
-    src/third_party/protobuf/src/google/protobuf/compiler/cpp/service.cc
-    src/third_party/protobuf/src/google/protobuf/compiler/cpp/string_field.cc
-    src/third_party/protobuf/src/google/protobuf/compiler/csharp/csharp_doc_comment.cc
-    src/third_party/protobuf/src/google/protobuf/compiler/csharp/csharp_enum.cc
-    src/third_party/protobuf/src/google/protobuf/compiler/csharp/csharp_enum_field.cc
-    src/third_party/protobuf/src/google/protobuf/compiler/csharp/csharp_field_base.cc
-    src/third_party/protobuf/src/google/protobuf/compiler/csharp/csharp_generator.cc
-    src/third_party/protobuf/src/google/protobuf/compiler/csharp/csharp_helpers.cc
-    src/third_party/protobuf/src/google/protobuf/compiler/csharp/csharp_map_field.cc
-    src/third_party/protobuf/src/google/protobuf/compiler/csharp/csharp_message.cc
-    src/third_party/protobuf/src/google/protobuf/compiler/csharp/csharp_message_field.cc
-    src/third_party/protobuf/src/google/protobuf/compiler/csharp/csharp_primitive_field.cc
-    src/third_party/protobuf/src/google/protobuf/compiler/csharp/csharp_reflection_class.cc
-    src/third_party/protobuf/src/google/protobuf/compiler/csharp/csharp_repeated_enum_field.cc
-    src/third_party/protobuf/src/google/protobuf/compiler/csharp/csharp_repeated_message_field.cc
-    src/third_party/protobuf/src/google/protobuf/compiler/csharp/csharp_repeated_primitive_field.cc
-    src/third_party/protobuf/src/google/protobuf/compiler/csharp/csharp_source_generator_base.cc
-    src/third_party/protobuf/src/google/protobuf/compiler/csharp/csharp_wrapper_field.cc
-    src/third_party/protobuf/src/google/protobuf/compiler/importer.cc
-    src/third_party/protobuf/src/google/protobuf/compiler/java/context.cc
-    src/third_party/protobuf/src/google/protobuf/compiler/java/doc_comment.cc
-    src/third_party/protobuf/src/google/protobuf/compiler/java/enum.cc
-    src/third_party/protobuf/src/google/protobuf/compiler/java/enum_field.cc
-    src/third_party/protobuf/src/google/protobuf/compiler/java/enum_field_lite.cc
-    src/third_party/protobuf/src/google/protobuf/compiler/java/enum_lite.cc
-    src/third_party/protobuf/src/google/protobuf/compiler/java/extension.cc
-    src/third_party/protobuf/src/google/protobuf/compiler/java/extension_lite.cc
-    src/third_party/protobuf/src/google/protobuf/compiler/java/field.cc
-    src/third_party/protobuf/src/google/protobuf/compiler/java/file.cc
-    src/third_party/protobuf/src/google/protobuf/compiler/java/generator.cc
-    src/third_party/protobuf/src/google/protobuf/compiler/java/generator_factory.cc
-    src/third_party/protobuf/src/google/protobuf/compiler/java/helpers.cc
-    src/third_party/protobuf/src/google/protobuf/compiler/java/kotlin_generator.cc
-    src/third_party/protobuf/src/google/protobuf/compiler/java/map_field.cc
-    src/third_party/protobuf/src/google/protobuf/compiler/java/map_field_lite.cc
-    src/third_party/protobuf/src/google/protobuf/compiler/java/message.cc
-    src/third_party/protobuf/src/google/protobuf/compiler/java/message_builder.cc
-    src/third_party/protobuf/src/google/protobuf/compiler/java/message_builder_lite.cc
-    src/third_party/protobuf/src/google/protobuf/compiler/java/message_field.cc
-    src/third_party/protobuf/src/google/protobuf/compiler/java/message_field_lite.cc
-    src/third_party/protobuf/src/google/protobuf/compiler/java/message_lite.cc
-    src/third_party/protobuf/src/google/protobuf/compiler/java/name_resolver.cc
-    src/third_party/protobuf/src/google/protobuf/compiler/java/primitive_field.cc
-    src/third_party/protobuf/src/google/protobuf/compiler/java/primitive_field_lite.cc
-    src/third_party/protobuf/src/google/protobuf/compiler/java/service.cc
-    src/third_party/protobuf/src/google/protobuf/compiler/java/shared_code_generator.cc
-    src/third_party/protobuf/src/google/protobuf/compiler/java/string_field.cc
-    src/third_party/protobuf/src/google/protobuf/compiler/java/string_field_lite.cc
-    src/third_party/protobuf/src/google/protobuf/compiler/main.cc
-    src/third_party/protobuf/src/google/protobuf/compiler/objectivec/objectivec_enum.cc
-    src/third_party/protobuf/src/google/protobuf/compiler/objectivec/objectivec_enum_field.cc
-    src/third_party/protobuf/src/google/protobuf/compiler/objectivec/objectivec_extension.cc
-    src/third_party/protobuf/src/google/protobuf/compiler/objectivec/objectivec_field.cc
-    src/third_party/protobuf/src/google/protobuf/compiler/objectivec/objectivec_file.cc
-    src/third_party/protobuf/src/google/protobuf/compiler/objectivec/objectivec_generator.cc
-    src/third_party/protobuf/src/google/protobuf/compiler/objectivec/objectivec_helpers.cc
-    src/third_party/protobuf/src/google/protobuf/compiler/objectivec/objectivec_map_field.cc
-    src/third_party/protobuf/src/google/protobuf/compiler/objectivec/objectivec_message.cc
-    src/third_party/protobuf/src/google/protobuf/compiler/objectivec/objectivec_message_field.cc
-    src/third_party/protobuf/src/google/protobuf/compiler/objectivec/objectivec_oneof.cc
-    src/third_party/protobuf/src/google/protobuf/compiler/objectivec/objectivec_primitive_field.cc
-    src/third_party/protobuf/src/google/protobuf/compiler/parser.cc
-    src/third_party/protobuf/src/google/protobuf/compiler/php/php_generator.cc
-    src/third_party/protobuf/src/google/protobuf/compiler/plugin.cc
-    src/third_party/protobuf/src/google/protobuf/compiler/plugin.pb.cc
-    src/third_party/protobuf/src/google/protobuf/compiler/python/generator.cc
-    src/third_party/protobuf/src/google/protobuf/compiler/python/helpers.cc
-    src/third_party/protobuf/src/google/protobuf/compiler/python/pyi_generator.cc
-    src/third_party/protobuf/src/google/protobuf/compiler/ruby/ruby_generator.cc
-    src/third_party/protobuf/src/google/protobuf/compiler/subprocess.cc
-    src/third_party/protobuf/src/google/protobuf/compiler/zip_writer.cc
-    src/third_party/protobuf/src/google/protobuf/descriptor.cc
-    src/third_party/protobuf/src/google/protobuf/descriptor.pb.cc
-    src/third_party/protobuf/src/google/protobuf/descriptor_database.cc
-    src/third_party/protobuf/src/google/protobuf/duration.pb.cc
-    src/third_party/protobuf/src/google/protobuf/dynamic_message.cc
-    src/third_party/protobuf/src/google/protobuf/empty.pb.cc
-    src/third_party/protobuf/src/google/protobuf/extension_set.cc
-    src/third_party/protobuf/src/google/protobuf/extension_set_heavy.cc
-    src/third_party/protobuf/src/google/protobuf/field_mask.pb.cc
-    src/third_party/protobuf/src/google/protobuf/generated_enum_util.cc
-    src/third_party/protobuf/src/google/protobuf/generated_message_bases.cc
-    src/third_party/protobuf/src/google/protobuf/generated_message_reflection.cc
-    src/third_party/protobuf/src/google/protobuf/generated_message_tctable_full.cc
-    src/third_party/protobuf/src/google/protobuf/generated_message_tctable_lite.cc
-    src/third_party/protobuf/src/google/protobuf/generated_message_util.cc
-    src/third_party/protobuf/src/google/protobuf/implicit_weak_message.cc
-    src/third_party/protobuf/src/google/protobuf/inlined_string_field.cc
-    src/third_party/protobuf/src/google/protobuf/io/coded_stream.cc
-    src/third_party/protobuf/src/google/protobuf/io/gzip_stream.cc
-    src/third_party/protobuf/src/google/protobuf/io/io_win32.cc
-    src/third_party/protobuf/src/google/protobuf/io/printer.cc
-    src/third_party/protobuf/src/google/protobuf/io/strtod.cc
-    src/third_party/protobuf/src/google/protobuf/io/tokenizer.cc
-    src/third_party/protobuf/src/google/protobuf/io/zero_copy_stream.cc
-    src/third_party/protobuf/src/google/protobuf/io/zero_copy_stream_impl.cc
-    src/third_party/protobuf/src/google/protobuf/io/zero_copy_stream_impl_lite.cc
-    src/third_party/protobuf/src/google/protobuf/map.cc
-    src/third_party/protobuf/src/google/protobuf/map_field.cc
-    src/third_party/protobuf/src/google/protobuf/message.cc
-    src/third_party/protobuf/src/google/protobuf/message_lite.cc
-    src/third_party/protobuf/src/google/protobuf/parse_context.cc
-    src/third_party/protobuf/src/google/protobuf/reflection_ops.cc
-    src/third_party/protobuf/src/google/protobuf/repeated_field.cc
-    src/third_party/protobuf/src/google/protobuf/repeated_ptr_field.cc
-    src/third_party/protobuf/src/google/protobuf/service.cc
-    src/third_party/protobuf/src/google/protobuf/source_context.pb.cc
-    src/third_party/protobuf/src/google/protobuf/struct.pb.cc
-    src/third_party/protobuf/src/google/protobuf/stubs/bytestream.cc
-    src/third_party/protobuf/src/google/protobuf/stubs/common.cc
-    src/third_party/protobuf/src/google/protobuf/stubs/int128.cc
-    src/third_party/protobuf/src/google/protobuf/stubs/status.cc
-    src/third_party/protobuf/src/google/protobuf/stubs/statusor.cc
-    src/third_party/protobuf/src/google/protobuf/stubs/stringpiece.cc
-    src/third_party/protobuf/src/google/protobuf/stubs/stringprintf.cc
-    src/third_party/protobuf/src/google/protobuf/stubs/structurally_valid.cc
-    src/third_party/protobuf/src/google/protobuf/stubs/strutil.cc
-    src/third_party/protobuf/src/google/protobuf/stubs/substitute.cc
-    src/third_party/protobuf/src/google/protobuf/stubs/time.cc
-    src/third_party/protobuf/src/google/protobuf/text_format.cc
-    src/third_party/protobuf/src/google/protobuf/timestamp.pb.cc
-    src/third_party/protobuf/src/google/protobuf/type.pb.cc
-    src/third_party/protobuf/src/google/protobuf/unknown_field_set.cc
-    src/third_party/protobuf/src/google/protobuf/util/delimited_message_util.cc
-    src/third_party/protobuf/src/google/protobuf/util/field_comparator.cc
-    src/third_party/protobuf/src/google/protobuf/util/field_mask_util.cc
-    src/third_party/protobuf/src/google/protobuf/util/internal/datapiece.cc
-    src/third_party/protobuf/src/google/protobuf/util/internal/default_value_objectwriter.cc
-    src/third_party/protobuf/src/google/protobuf/util/internal/error_listener.cc
-    src/third_party/protobuf/src/google/protobuf/util/internal/field_mask_utility.cc
-    src/third_party/protobuf/src/google/protobuf/util/internal/json_escaping.cc
-    src/third_party/protobuf/src/google/protobuf/util/internal/json_objectwriter.cc
-    src/third_party/protobuf/src/google/protobuf/util/internal/json_stream_parser.cc
-    src/third_party/protobuf/src/google/protobuf/util/internal/object_writer.cc
-    src/third_party/protobuf/src/google/protobuf/util/internal/proto_writer.cc
-    src/third_party/protobuf/src/google/protobuf/util/internal/protostream_objectsource.cc
-    src/third_party/protobuf/src/google/protobuf/util/internal/protostream_objectwriter.cc
-    src/third_party/protobuf/src/google/protobuf/util/internal/type_info.cc
-    src/third_party/protobuf/src/google/protobuf/util/internal/utility.cc
-    src/third_party/protobuf/src/google/protobuf/util/json_util.cc
-    src/third_party/protobuf/src/google/protobuf/util/message_differencer.cc
-    src/third_party/protobuf/src/google/protobuf/util/time_util.cc
-    src/third_party/protobuf/src/google/protobuf/util/type_resolver_util.cc
-    src/third_party/protobuf/src/google/protobuf/wire_format.cc
-    src/third_party/protobuf/src/google/protobuf/wire_format_lite.cc
-    src/third_party/protobuf/src/google/protobuf/wrappers.pb.cc
-    src/third_party/rnnoise/src/rnn_vad_weights.cc
-    src/third_party/zlib/adler32.c
-    src/third_party/zlib/adler32_simd.c
-    src/third_party/zlib/compress.c
-    src/third_party/zlib/contrib/optimizations/inffast_chunk.c
-    src/third_party/zlib/contrib/optimizations/inflate.c
-    src/third_party/zlib/cpu_features.c
-    src/third_party/zlib/crc32.c
-    src/third_party/zlib/crc32_simd.c
-    src/third_party/zlib/deflate.c
-    src/third_party/zlib/gzclose.c
-    src/third_party/zlib/gzlib.c
-    src/third_party/zlib/gzread.c
-    src/third_party/zlib/gzwrite.c
-    src/third_party/zlib/infback.c
-    src/third_party/zlib/inffast.c
-    src/third_party/zlib/inftrees.c
-    src/third_party/zlib/trees.c
-    src/third_party/zlib/uncompr.c
-    src/third_party/zlib/zutil.c
-    src/modules/audio_processing/echo_detector/circular_buffer.cc
-    src/modules/audio_processing/echo_detector/mean_variance_estimator.cc
-    src/modules/audio_processing/echo_detector/moving_max.cc
-    src/modules/audio_processing/echo_detector/normalized_covariance_estimator.cc
-    src/modules/audio_processing/residual_echo_detector.cc
-)
-
+if(CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "aarch64|ARM64|arm64")
+    add_definitions(-DWEBRTC_ARCH_ARM64)
+    add_definitions(-DWEBRTC_HAS_NEON)
+    # Add source files for ARM64
+    set(SOURCE_FILES
+        ${SOURCE_FILES}
+        src/common_audio/resampler/sinc_resampler_neon.cc
+        src/common_audio/fir_filter_neon.cc
+        src/common_audio/signal_processing/cross_correlation_neon.c
+        src/common_audio/signal_processing/downsample_fast_neon.c
+        src/common_audio/signal_processing/min_max_operations_neon.c
+        src/common_audio/third_party/ooura/fft_size_128/ooura_fft_neon.cc
+        src/modules/audio_processing/aecm/aecm_core_neon.cc
+    )
+endif()
 
 # Add a library target to the project
 add_library(audio_processing STATIC ${SOURCE_FILES})

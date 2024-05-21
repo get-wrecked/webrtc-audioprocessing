@@ -11,8 +11,8 @@ This repo tries to solve the above problem by using a simple CMake based system 
 ## Building
 The below points mention the steps for building the WebRTC release version M124, the latest stable release while writing this document. The list of WebRTC releases and its branch name is published [here](https://chromiumdash.appspot.com/branches) by the chromium team.
 
-- Install the WebRTC developer pre-requisite softwares and tools as suggested [here](https://webrtc.googlesource.com/src/+/main/docs/native-code/development/prerequisite-sw/)
-- Fetch the latest webrtc src by running the following commands from the root folder of this repository.
+- Install the WebRTC developer pre-requisite softwares and tools as suggested [here](https://webrtc.googlesource.com/src/+/main/docs/native-code/development/prerequisite-sw/). The Windows section of the above page, redirects you to the chromium build steps. In the chromium build steps page, make sure to stop after installing the prerequisites. You need not follow the steps mentioned for downloading and building the chromium source(Obviously duh!).
+- Fetch the latest webrtc src by running the following commands from the root folder of this repository. This fetch step might take anywhere between few minutes to few hours depending on your internet connection speed. So be patient. If you try believe the fetch step has hung, then just stop it and re-run the command to restart the download.
 ```
 fetch --nohooks webrtc
 gclient sync
@@ -22,7 +22,7 @@ gclient sync
 cd src
 git checkout branch-heads/6367
 ```
-- Generate the WebRTC GN build files.
+- Generate the WebRTC GN build files. This will autogenerate some protobuf source files that are required for building the library.
 ```
 gn gen out/Default
 ```

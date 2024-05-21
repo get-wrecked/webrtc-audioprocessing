@@ -1,0 +1,4 @@
+.gc*
+src
+build
+.cipd
