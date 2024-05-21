@@ -26,6 +26,22 @@ git checkout branch-heads/6367
 ```
 gn gen out/Default
 ```
+- If you using Windows, then apply the below one-line change manually. Planning to submit this upstream, and get rid of this manual step for future versions
+```
+C:\work\webrtc-audioprocessing\src>git diff
+diff --git a/rtc_base/checks.h b/rtc_base/checks.h
+index 99fee97d0a..1e243e8ad4 100644
+--- a/rtc_base/checks.h
++++ b/rtc_base/checks.h
+@@ -475,7 +475,7 @@ RTC_NORETURN RTC_EXPORT void UnreachableCodeReached();
+ // remainder is zero.
+ template <typename T>
+ inline T CheckedDivExact(T a, T b) {
+-  RTC_CHECK_EQ(a % b, 0) << a << " is not evenly divisible by " << b;
++  RTC_CHECK_EQ(a % b, 0);
+   return a / b;
+ }
+```
 - Now let's build the audio processing library, using cmake from the root folder of this repo
 ```
 cd ..

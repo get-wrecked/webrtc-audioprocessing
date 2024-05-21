@@ -5,3 +5,4 @@ install
 .cipd
 .DS_Store
 sources_new.cmake
+.vscode

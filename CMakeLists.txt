@@ -7,7 +7,6 @@ project(AudioProcessingLibrary)
 include(sources.cmake)
 
 # Specify the C++ standard
-set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 if(UNIX)
@@ -31,12 +30,15 @@ endif()
 
 # Windows
 if(WIN32)
+  set(CMAKE_CXX_STANDARD 20)
   add_definitions(-DWEBRTC_WIN)
   add_definitions(-DNOMINMAX)
   add_definitions(-DWIN32_LEAN_AND_MEAN)
+  add_definitions(-D_USE_MATH_DEFINES)
+  add_definitions(-DRTC_DISABLE_CHECK_MSG)
+else()
+  set(CMAKE_CXX_STANDARD 17)
 endif()
-
-add_definitions(-DRTC_DISABLE_CHECK_MSG)
 
 message(STATUS "Host System Processor: ${CMAKE_HOST_SYSTEM_PROCESSOR}")
 
@@ -61,21 +63,31 @@ endif()
 
 if ((CMAKE_SYSTEM_PROCESSOR STREQUAL "arm64") OR
 (CMAKE_SYSTEM_PROCESSOR STREQUAL "aarch64"))
-add_definitions(-DINFLATE_CHUNK_SIMD_NEON)
-add_definitions(-DADLER32_SIMD_NEON)
-add_definitions(-DINFLATE_CHUNK_READ_64LE)
-add_definitions(-DCRC32_ARMV8_CRC32)
-add_definitions(-DDEFLATE_SLIDE_HASH_NEON)
-# Required by CPU features detection code.
-if (APPLE)
-add_definitions(-DARMV8_OS_MACOS)
+  add_definitions(-DINFLATE_CHUNK_SIMD_NEON)
+  add_definitions(-DADLER32_SIMD_NEON)
+  add_definitions(-DINFLATE_CHUNK_READ_64LE)
+  add_definitions(-DCRC32_ARMV8_CRC32)
+  add_definitions(-DDEFLATE_SLIDE_HASH_NEON)
+  # Required by CPU features detection code.
+  if (APPLE)
+    add_definitions(-DARMV8_OS_MACOS)
+  endif()
+  if (UNIX AND NOT APPLE)
+    add_definitions(-DARMV8_OS_LINUX)
+  endif()
+  SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=armv8-a+crc+crypto")
 endif()
 
-if (UNIX AND NOT APPLE)
-add_definitions(-DARMV8_OS_LINUX)
-endif()
-
-SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=armv8-a+crc+crypto")
+if (CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|AMD64|amd64|X86_64")
+  add_definitions(-DINFLATE_CHUNK_SIMD_SSE2)
+  add_definitions(-DADLER32_SIMD_SSSE3)
+  add_definitions(-DINFLATE_CHUNK_READ_64LE)
+  add_definitions(-DDEFLATE_SLIDE_HASH_SSE2)
+  if(WIN32)
+    add_definitions(-DX86_WINDOWS)
+  else()
+    add_definitions(-DX86_NOT_WINDOWS)
+  endif()
 endif()
 
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
