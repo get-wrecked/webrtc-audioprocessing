@@ -26,9 +26,29 @@ git checkout branch-heads/6367
 ```
 gn gen out/Default
 ```
-- If you using Windows, then apply the below one-line change manually. Planning to submit this upstream, and get rid of this manual step for future versions
+- If you using Windows, then apply the below changes manually.
 ```
 C:\work\webrtc-audioprocessing\src>git diff
+diff --git a/modules/audio_processing/aec3/matched_filter.cc b/modules/audio_processing/aec3/matched_filter.cc
+index edaa2a4d14..f46387cfed 100644
+--- a/modules/audio_processing/aec3/matched_filter.cc
++++ b/modules/audio_processing/aec3/matched_filter.cc
+@@ -769,6 +769,7 @@ void MatchedFilter::Update(const DownsampledRenderBuffer& render_buffer,
+             filters_[n], &filters_updated, &error_sum, compute_pre_echo,
+             instantaneous_accumulated_error_, scratch_memory_);
+         break;
++#if defined(WEBRTC_ENABLE_AVX2)
+       case Aec3Optimization::kAvx2:
+         aec3::MatchedFilterCore_AVX2(
+             x_start_index, x2_sum_threshold, smoothing, render_buffer.buffer, y,
+@@ -776,6 +777,7 @@ void MatchedFilter::Update(const DownsampledRenderBuffer& render_buffer,
+             instantaneous_accumulated_error_, scratch_memory_);
+         break;
+ #endif
++#endif
+ #if defined(WEBRTC_HAS_NEON)
+       case Aec3Optimization::kNeon:
+         aec3::MatchedFilterCore_NEON(
 diff --git a/rtc_base/checks.h b/rtc_base/checks.h
 index 99fee97d0a..1e243e8ad4 100644
 --- a/rtc_base/checks.h

@@ -35,14 +35,13 @@ if(WIN32)
   add_definitions(-DNOMINMAX)
   add_definitions(-DWIN32_LEAN_AND_MEAN)
   add_definitions(-D_USE_MATH_DEFINES)
-  add_definitions(-DRTC_DISABLE_CHECK_MSG)
 else()
   set(CMAKE_CXX_STANDARD 17)
 endif()
 
-message(STATUS "Host System Processor: ${CMAKE_HOST_SYSTEM_PROCESSOR}")
+add_definitions(-DRTC_DISABLE_CHECK_MSG)
 
-add_definitions(-DWEBRTC_APM_DEBUG_DUMP=1)
+message(STATUS "Host System Processor: ${CMAKE_HOST_SYSTEM_PROCESSOR}")
 
 # Definitions copy-pasted from zlib CMakeLists.txt. TODO : Maybe to better to call zlib CMakeLists.txt directly.
 if (CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
@@ -144,6 +143,23 @@ if(CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "aarch64|ARM64|arm64")
         src/common_audio/signal_processing/min_max_operations_neon.c
         src/common_audio/third_party/ooura/fft_size_128/ooura_fft_neon.cc
         src/modules/audio_processing/aecm/aecm_core_neon.cc
+    )
+endif()
+
+if (CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|AMD64|amd64|X86_64")
+    set(SOURCE_FILES
+        ${SOURCE_FILES}
+        src/common_audio/resampler/sinc_resampler_sse.cc
+        src/common_audio/resampler/sinc_resampler_avx2.cc
+        src/common_audio/fir_filter_sse.cc
+        src/common_audio/fir_filter_avx2.cc
+        src/common_audio/third_party/ooura/fft_size_128/ooura_fft_sse2.cc
+        #src/modules/audio_processing/aec3/matched_filter_avx2.cc
+        src/modules/audio_processing/aec3/fft_data_avx2.cc
+        src/modules/audio_processing/aec3/vector_math_avx2.cc
+        src/modules/audio_processing/aec3/adaptive_fir_filter_erl_avx2.cc
+        src/modules/audio_processing/aec3/adaptive_fir_filter_avx2.cc
+        src/modules/audio_processing/agc2/rnn_vad/vector_math_avx2.cc
     )
 endif()
 
