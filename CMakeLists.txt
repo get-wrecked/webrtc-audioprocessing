@@ -40,6 +40,7 @@ else()
 endif()
 
 add_definitions(-DRTC_DISABLE_CHECK_MSG)
+add_definitions(-DWEBRTC_APM_DEBUG_DUMP=0)
 
 message(STATUS "Host System Processor: ${CMAKE_HOST_SYSTEM_PROCESSOR}")
 
@@ -154,12 +155,22 @@ if (CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|AMD64|amd64|X86_64")
         src/common_audio/fir_filter_sse.cc
         src/common_audio/fir_filter_avx2.cc
         src/common_audio/third_party/ooura/fft_size_128/ooura_fft_sse2.cc
-        #src/modules/audio_processing/aec3/matched_filter_avx2.cc
         src/modules/audio_processing/aec3/fft_data_avx2.cc
         src/modules/audio_processing/aec3/vector_math_avx2.cc
         src/modules/audio_processing/aec3/adaptive_fir_filter_erl_avx2.cc
         src/modules/audio_processing/aec3/adaptive_fir_filter_avx2.cc
         src/modules/audio_processing/agc2/rnn_vad/vector_math_avx2.cc
+    )
+    if (APPLE)
+        set(SOURCE_FILES
+            ${SOURCE_FILES}
+            src/modules/audio_processing/aec3/matched_filter_avx2.cc
+        )
+    endif()
+    add_compile_options(
+        $<$<OR:$<CXX_COMPILER_ID:GNU>,$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>>:-mavx2>
+        $<$<OR:$<CXX_COMPILER_ID:GNU>,$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>>:-mfma>
+        $<$<CXX_COMPILER_ID:MSVC>:/arch:AVX2>
     )
 endif()
 
