@@ -26,7 +26,7 @@ git checkout branch-heads/6367
 ```
 gn gen out/Default
 ```
-- If you using Windows, then apply the below changes manually.
+- If you using Windows on x64, then apply the below changes manually.
 ```
 C:\work\webrtc-audioprocessing\src>git diff
 diff --git a/modules/audio_processing/aec3/matched_filter.cc b/modules/audio_processing/aec3/matched_filter.cc
@@ -61,6 +61,37 @@ index 99fee97d0a..1e243e8ad4 100644
 +  RTC_CHECK_EQ(a % b, 0);
    return a / b;
  }
+```
+- If you using Windows on arm64, then apply the below changes manually.
+```
+C:\karthick\webrtc-audioprocessing\src>git diff
+diff --git a/system_wrappers/source/denormal_disabler.cc b/system_wrappers/source/denormal_disabler.cc
+index bb9c05643c..b9634444e3 100644
+--- a/system_wrappers/source/denormal_disabler.cc
++++ b/system_wrappers/source/denormal_disabler.cc
+@@ -21,7 +21,7 @@ namespace {
+
+ #if defined(WEBRTC_DENORMAL_DISABLER_X86_SUPPORTED) || \
+     defined(WEBRTC_ARCH_ARM_FAMILY)
+-#define WEBRTC_DENORMAL_DISABLER_SUPPORTED
++// #define WEBRTC_DENORMAL_DISABLER_SUPPORTED
+ #endif
+
+ constexpr int kUnspecifiedStatusWord = -1;
+
+C:\karthick\webrtc-audioprocessing\src\third_party\zlib>git diff
+diff --git a/zlib/cpu_features.c b/zlib/cpu_features.c
+index 34ae7b913af..bcc258642e1 100644
+--- a/zlib/cpu_features.c
++++ b/zlib/cpu_features.c
+@@ -62,7 +62,7 @@ int ZLIB_INTERNAL riscv_cpu_enable_vclmul = 0;
+ #error cpu_features.c CPU feature detection in not defined for your platform
+ #endif
+
+-#if !defined(CPU_NO_SIMD) && !defined(ARMV8_OS_MACOS)
++#if !defined(CPU_NO_SIMD) && !defined(ARMV8_OS_MACOS) && !defined(ARMV8_OS_WINDOWS)
+ static void _cpu_check_features(void);
+ #endif
 ```
 - Now let's build the audio processing library, using cmake from the root folder of this repo
 ```
